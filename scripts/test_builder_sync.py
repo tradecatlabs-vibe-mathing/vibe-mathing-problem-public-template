@@ -83,10 +83,15 @@ class BuilderSyncTests(unittest.TestCase):
             self.assertNotEqual(issued['entries'][-1]['harness_snapshot_sha256'],
                                 history['entries'][-1]['harness_snapshot_sha256'])
             command.remove('--history-source');command.remove(str(prior))
-            command[-1] = str(Path(directory) / 'blocked')
-            blocked = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
-            self.assertNotEqual(blocked.returncode, 0)
-            self.assertIn('strictly newer version', blocked.stderr)
+            command[-1] = str(Path(directory) / 'default-continuation')
+            # A clean published 2.3.5 root is the valid immediate parent of 2.3.6;
+            # same-version unpublished candidates still require the explicit prior source above.
+            default_built = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+            self.assertEqual(default_built.returncode, 0, default_built.stderr)
+            default_history = json.loads((Path(directory) / 'default-continuation/HARNESS_SNAPSHOT_HISTORY.json').read_text(encoding='utf-8'))
+            published_history = json.loads((ROOT / 'HARNESS_SNAPSHOT_HISTORY.json').read_text(encoding='utf-8'))
+            self.assertEqual(default_history['entries'][:-1], published_history['entries'])
+            self.assertEqual(default_history['entries'][-1]['harness_version'], '2.3.6')
 
     def test_builder_has_public_rights_gate_and_runtime_cleanup(self) -> None:
         text = (ROOT / "scripts/build_problem_repository.py").read_text(encoding="utf-8")
@@ -151,7 +156,15 @@ class BuilderSyncTests(unittest.TestCase):
             self.assertNotIn("pi-goal-operator", json.dumps(pi_settings))
             operator = output / ".pi/opt-in-skills/pi-goal-operator/SKILL.md"
             self.assertTrue(operator.is_file())
-            self.assertIn("disable-model-invocation: true", operator.read_text(encoding="utf-8"))
+            operator_text = operator.read_text(encoding="utf-8")
+            self.assertIn("disable-model-invocation: true", operator_text)
+            self.assertIn("容量停放与恢复验收", operator_text)
+            self.assertEqual((operator.parent / "VERSION").read_text(encoding="utf-8").strip(), "0.1.3")
+            template_contract = (output / "TEMPLATE_REPOSITORY.md").read_text(encoding="utf-8")
+            self.assertIn("Capacity, write authority, and recovery acceptance", template_contract)
+            pressure_tests = (operator.parent / "references/pressure-tests.md").read_text(encoding="utf-8")
+            self.assertIn("Capacity limits, authorization, and actual recovery", pressure_tests)
+            self.assertIn("active` or a checkpoint is a recovery false positive", pressure_tests)
             defaults_path = output / ".pi/pi-goal-x-settings.json"
             defaults = json.loads(defaults_path.read_text(encoding="utf-8"))
             self.assertTrue(defaults["disableTasks"])

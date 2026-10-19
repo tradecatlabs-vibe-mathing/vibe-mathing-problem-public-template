@@ -169,6 +169,54 @@ an independent recovery replay and a bounded retention policy. The generic
 template has no admitted local actor, so never run it on the placeholder as
 research evidence.
 
+### Capacity, write authority, and recovery acceptance
+
+The checkpoint reporter is observation-only. Its per-JSON read bound and
+inventory file-count bound protect that report; its directory byte/file counts
+are observations, not the current producer's quota or write authorization. It
+does not decide whether another artifact may be written, track cumulative
+computation, or prove that a producer resumed.
+
+Before classifying a capacity stop, read the actual current user instruction,
+assigned write scope, and applicable machine-enforced limits. A model-generated
+summary, current active artifact, or remembered budget cannot grant, expand,
+remove, or narrow that authority. Distinguish the actual scope (an exact file
+versus an authorized directory) from each resource dimension, and check the
+source, units, scope, used amount, and remaining amount for each applicable
+limit:
+
+- maximum bytes for one file;
+- cumulative bytes in the authorized directory or producer output set;
+- cumulative file count (and inode limits where applicable);
+- actual filesystem capacity, including available bytes and inodes; and
+- cumulative producer/execution budget, such as compute, attempts, or model
+  usage where the real contract defines them.
+
+A limit on one dimension does not establish exhaustion of another, and an
+unconfigured aggregate quota must not be invented. If the actual write scope
+already authorizes a directory, reaching only a per-file cap does not require
+re-authorizing a distinct, bounded file in that same directory: use that
+existing scope only when all applicable cumulative limits and physical
+resources still permit it, preserve the original file, and verify the new
+write. An exact-file grant remains exact and does not authorize a sibling or
+new directory. Conversely, splitting, renaming, rotating, retrying, or using a
+new filename never resets cumulative bytes, file-count limits, prior failures,
+or consumed producer/computation budget. Stop or park the affected producer
+when its real aggregate limit is reached; do not move output outside the
+existing scope to evade it.
+
+A recovery claim requires fresh evidence from the same authorized actor and
+mission: a new successful execution result, a durable write within the
+existing scope, and a read-back that confirms the written artifact's expected
+identity and integrity. Check the actual consumed budget and preserved prior
+state as part of that observation. `active`/`Working`, an ACK, a resume command,
+a self-reported checkpoint, or a checkpoint validator alone is not recovery
+proof. A successful bounded recovery proves only that observed run; it does not
+promise future availability, mathematical progress, or Result admission. This
+template has no generic programmatic authorization/budget/recovery gate, so
+these requirements are an operator contract, not a mechanically enforced
+runtime guarantee.
+
 ### Display, compaction and sealed-pair shadow (opt-in boundaries)
 
 - Patched Goal defaults to `hideDashboard=true`: only the widget/status hint is

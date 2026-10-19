@@ -1,5 +1,14 @@
 # 母版变更记录
 
+## 2.3.6 - 公开维护候选（2026-10-19）
+
+- 为通用维护合同与 opt-in `pi-goal-operator` Skill 0.1.3 增加容量/写域/恢复判据；明确这是操作约定，不是运行时预算或恢复执行器。
+- 保持十个数学 Skill 激活入口、既有单文件/PR差异上限和发布扫描策略不变；新增 builder 打包回归，验证维护 Skill 仍随模板复制且不进入数学激活 allowlist。
+- 保留顶层研究激励与现有仓库身份；不修改数学研究记录、actor、Goal 或实际预算。
+- 单独提出的完整 2.4.1 参考库候选仍 HOLD，未包含在本版或描述为已发布。
+
+回滚：使用普通 revert 回退 2.3.6 维护文档和 opt-in Skill 更新；不改写已发布历史或影响运行中的 actor/Goal。
+
 ## 2.3.5 - 候选（2026-10-01）
 
 - `pi-goal-x@0.31.9` MIT 原版与 MIT 项目补丁分别固定摘要；`scripts/install_goal_patch.py` 在官方 Pi 项目安装后仅接受受审前镜像或目标镜像。默认隐藏 Goal 面板但不改变原生续行、Esc/暂停/恢复；`/goal-snapshot` 仅有明确配置时桥接 `sealed-pair-shadow.v1`，母版现存 checkpoint reporter **不**提供兼容 owner。
