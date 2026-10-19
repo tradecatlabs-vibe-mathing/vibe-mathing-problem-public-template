@@ -27,6 +27,7 @@ disable-model-invocation: true
 5. 首次激活仅在**原 actor**且无已有 Goal、身份和保护全过后，执行一次抽象根使命 `/goal-direct`（参照 `TEMPLATE_REPOSITORY.md`）。不得使用 `/sisyphus`、路线分解、lemma、强制 phase、固定 run/token/墙钟配额作为数学闭合代理。旧 Goal 已存在就不要用 `/goal-direct` 覆盖焦点或制造并行 Goal。
 6. 中断/复原：重新核对相同 session、Goal ID、lease、cwd、根题及实际保护。启动时若弹出恢复暂停 Goal 的确认，**先拒绝**，完成核查后再用 `/goal-resume`；`claimed/running/interrupted` 旧 dispatch 不会重放。先读取 `/goal-recovery`，`repair` 会改文件，不用于常规观察。Goal 网络重试达到上限只是运行态停放，数学根仍 `OPEN`，恢复前确认提供方健康。
 7. 如果 Goal 完成或被归档而独立根闭合仍无新鲜准入回执，记录控制面不一致；不得宣布解题、盲目新建 Goal 或第二 actor。先做独立数学核验和同 actor 的恢复评估。发布前只允许有限来源/候选进入验证侧，Goal auditor 也不是数学 verifier。
+8. 容量停放与恢复验收：按 `TEMPLATE_REPOSITORY.md` 的 **Capacity, write authority, and recovery acceptance** 区分单文件、目录累计字节、文件数、物理存储与producer计算预算，并以原始任务/机器写域而非摘要判断权限。原任务已授权目录且仅单文件上限触顶时，可在该目录内写入有界新文件，但不得覆盖旧文件或重置任何已耗预算；精确文件授权不得外推。恢复报告必须有同一actor/使命的新成功执行、授权范围内的持久写入和读回；`active`、ACK、resume或检查点自证均不足。当前模板没有通用的机械预算/恢复接口，不能把观察脚本描述成执行护栏。
 
 本 Skill 只定义操作判断，不执行维护命令或替维护者输入目标 pane。报出观察到的身份、设置来源、Goal 状态、缺失保护、下一安全动作和未完成项；不输出会话正文、私密路径、凭据或历史 Hook 控制消息。
 

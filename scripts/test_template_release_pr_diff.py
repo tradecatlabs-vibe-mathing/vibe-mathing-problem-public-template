@@ -39,7 +39,7 @@ class TemplateReleaseDiffTests(unittest.TestCase):
         self.solutions = {"generated_at": "1970-01-01T00:00:00Z", "schema_version": "2.0.0", "result_ids": []}
         self.inert = b""
 
-    def run_gate(self, branch="maintenance/template-release-1.1.0", actor="vibemathing", mode_override=None):
+    def run_gate(self, branch="maintenance/template-release-1.1.0", actor="tradecatlabs", actor_id="288998340", mode_override=None):
         def encoded(value):
             return json.dumps(value, ensure_ascii=False, sort_keys=True).encode()
 
@@ -86,13 +86,44 @@ class TemplateReleaseDiffTests(unittest.TestCase):
              patch.object(validator, "json_at_revision", side_effect=json_at), \
              patch.object(validator, "git", side_effect=git), \
              patch.object(validator, "tree_mode_and_size", side_effect=mode):
-            return validator.validate(Path("/unused"), "BASE", "HEAD", branch, actor)
+            return validator.validate(Path("/unused"), "BASE", "HEAD", branch, actor, actor_id)
 
-    def test_valid_bounded_template_upgrade(self):
-        self.assertEqual(self.run_gate(), [])
+    def run_harness_gate(self, branch="maintenance/harness-1.1.0", actor="tradecatlabs", actor_id="288998340", mode_override=None):
+        entries = [("A", ["scripts/new.py"]), ("M", ["HARNESS_SNAPSHOT.json"])]
 
-    def test_untrusted_actor_and_invalid_branch(self):
-        self.assertTrue(any("not trusted" in e for e in self.run_gate(actor="someone-else")))
+        def json_at(root, rev, path):
+            self.assertEqual(path, "HARNESS_SNAPSHOT.json")
+            return self.old if rev == "BASE" else self.new
+
+        def mode(root, revision, path):
+            if path == "scripts/new.py":
+                return mode_override or "100644", len(self.raw)
+            return "100644", 3
+
+        with (
+            patch.object(validator, "changed_paths", return_value=entries),
+            patch.object(validator, "json_at_revision", side_effect=json_at),
+            patch.object(validator, "tree_mode_and_size", side_effect=mode),
+        ):
+            return validator.validate_harness_maintenance(Path("/unused"), "BASE", "HEAD", branch, actor, actor_id)
+
+    def test_actual_publisher_stable_id_authorizes_template_release(self):
+        self.assertEqual(self.run_gate(actor="tradecatlabs", actor_id="288998340"), [])
+
+    def test_stable_id_survives_login_rename_for_both_maintenance_routes(self):
+        self.assertEqual(self.run_gate(actor="renamed-publisher", actor_id="288998340"), [])
+        self.assertEqual(self.run_harness_gate(actor="renamed-publisher", actor_id="288998340"), [])
+
+    def test_missing_or_wrong_stable_id_rejects_lookalike_logins_for_both_routes(self):
+        for gate in (self.run_gate, self.run_harness_gate):
+            for login in ("vibemathing", "tradecatlabs", "renamed-publisher"):
+                for actor_id in (None, "", "288998341"):
+                    with self.subTest(gate=gate.__name__, login=login, actor_id=actor_id):
+                        errors = gate(actor=login, actor_id=actor_id)
+                        self.assertTrue(any("actor id" in error.lower() and "not trusted" in error.lower()
+                                            for error in errors), errors)
+
+    def test_invalid_branch_still_rejected(self):
         self.assertTrue(any("invalid" in e for e in self.run_gate(branch="maintenance/template-release-")))
         self.assertTrue(any("must match" in e for e in self.run_gate(branch="maintenance/template-release-9.9.9")))
 
@@ -102,8 +133,8 @@ class TemplateReleaseDiffTests(unittest.TestCase):
              patch.object(validator, "changed_paths", return_value=[]), \
              patch.object(validator, "load_json", return_value={}), \
              patch.object(validator, "git", return_value=""):
-            errors = validator.validate(Path("/unused"), "BASE", "HEAD", "web/attempt-unsafe", "vibemathing")
-        self.assertTrue(errors)
+            errors = validator.validate(Path("/unused"), "BASE", "HEAD", "web/attempt-unsafe", "tradecatlabs", None)
+        self.assertEqual(errors, ["candidate PR has no changed files"])
 
     def test_changed_truth_or_untracked_path_rejected(self):
         self.entries.append(("A", ["research/records/evidence-links.jsonl"]))
