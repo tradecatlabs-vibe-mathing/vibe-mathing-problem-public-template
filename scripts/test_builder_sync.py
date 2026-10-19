@@ -83,15 +83,12 @@ class BuilderSyncTests(unittest.TestCase):
             self.assertNotEqual(issued['entries'][-1]['harness_snapshot_sha256'],
                                 history['entries'][-1]['harness_snapshot_sha256'])
             command.remove('--history-source');command.remove(str(prior))
-            command[-1] = str(Path(directory) / 'default-continuation')
-            # A clean published 2.3.5 root is the valid immediate parent of 2.3.6;
-            # same-version unpublished candidates still require the explicit prior source above.
-            default_built = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
-            self.assertEqual(default_built.returncode, 0, default_built.stderr)
-            default_history = json.loads((Path(directory) / 'default-continuation/HARNESS_SNAPSHOT_HISTORY.json').read_text(encoding='utf-8'))
-            published_history = json.loads((ROOT / 'HARNESS_SNAPSHOT_HISTORY.json').read_text(encoding='utf-8'))
-            self.assertEqual(default_history['entries'][:-1], published_history['entries'])
-            self.assertEqual(default_history['entries'][-1]['harness_version'], '2.3.6')
+            command[-1] = str(Path(directory) / 'blocked')
+            # The source tree now contains an unpublished 2.3.6 tail; rebuilding that
+            # version must not treat the candidate itself as its published parent.
+            blocked = subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=False)
+            self.assertNotEqual(blocked.returncode, 0)
+            self.assertIn('strictly newer version', blocked.stderr)
 
     def test_builder_has_public_rights_gate_and_runtime_cleanup(self) -> None:
         text = (ROOT / "scripts/build_problem_repository.py").read_text(encoding="utf-8")
