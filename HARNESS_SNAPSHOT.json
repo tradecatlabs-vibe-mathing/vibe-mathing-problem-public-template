@@ -76,7 +76,7 @@
     "sha256": "6ab7bc0dac0b3a28a3447cf22bcd6103db1568f78c9b1cb5730663241ed83921",
     "version": "2.3.6"
   },
-  "built_at": "2026-10-19T11:39:35+08:00",
+  "built_at": "2026-10-19T12:32:02+08:00",
   "digest_excludes": [
     "HARNESS_SNAPSHOT.json",
     "HARNESS_SNAPSHOT_HISTORY.json",
@@ -6922,12 +6922,12 @@
       "sha256": "5f6fa055d8e517e3ac13ac117d05eea8278178a5c69df23f48cc0aea1e1f6b77"
     },
     {
-      "bytes": 2417,
+      "bytes": 2645,
       "layer": "web_channel",
       "mode": "0644",
       "owner": "harness",
       "path": "CHANGELOG.md",
-      "sha256": "3d6c40493a9e90195c550bb8d28cccc6af28f622d46a744f4bcf881134a59173"
+      "sha256": "2c8c7d62c1255c710a32c873e859bb1d38e2a7176b9dde8bbbea1d78bbd44345"
     },
     {
       "bytes": 227,
@@ -8002,12 +8002,12 @@
       "sha256": "083e785aa69910353a89852518a81345dea5a917d51b52c168d209433a2a8e88"
     },
     {
-      "bytes": 8656,
+      "bytes": 10527,
       "layer": "web_channel",
       "mode": "0644",
       "owner": "harness",
       "path": "scripts/test_template_release_pr_diff.py",
-      "sha256": "fccf4e1d19408127b68e37bb64638f08d0158f70c0946d9547d55b56fcf0a612"
+      "sha256": "8c0a3ac7b54399a7e92e60982c7ecf6f8a485b3e6d6fbbb21c73dbdfe4780bad"
     },
     {
       "bytes": 4676,
@@ -8146,12 +8146,12 @@
       "sha256": "b4940667d01afdeb07bb1a90534b23975cfd7afd08918037ecd8a85131249649"
     },
     {
-      "bytes": 23491,
+      "bytes": 24677,
       "layer": "web_channel",
       "mode": "0644",
       "owner": "harness",
       "path": "scripts/validate_web_pr_diff.py",
-      "sha256": "1388aa443691f45055e5c6c49d122e5f95bf55896f4d5b2154e754fe19881253"
+      "sha256": "200de944c61a5b980cad0da7b6c519df1c8e664c8981789bc8834bafec793833"
     },
     {
       "bytes": 61948,
@@ -8323,5 +8323,5 @@
     "source_manifest_sha256": "c5f8c739c385f57014a9f3abdaa2fa1f559ba74007bbc8d8a6b07a1d3813f39e",
     "worktree_dirty": false
   },
-  "tree_sha256": "2a9f86bdf1a31367c3fd31e485444eb5976e1c5db9a608512d6ef2eccf393c93"
+  "tree_sha256": "25669c23acda6bc3a0e68904a37a82faac3bede863e6b9199d442ef3c6793a43"
 }
