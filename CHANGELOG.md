@@ -5,6 +5,7 @@
 - 为通用维护合同与 opt-in `pi-goal-operator` Skill 0.1.3 增加容量/写域/恢复判据；明确这是操作约定，不是运行时预算或恢复执行器。
 - 保持十个数学 Skill 激活入口、既有单文件/PR差异上限和发布扫描策略不变；新增 builder 打包回归，验证维护 Skill 仍随模板复制且不进入数学激活 allowlist。
 - 保留顶层研究激励与现有仓库身份；不修改数学研究记录、actor、Goal 或实际预算。
+- 修复维护差异门身份绑定：CI 以稳定 `GITHUB_ACTOR_ID` 判定维护权限，登录名只作诊断；缺失/不匹配时 fail closed，`--actor-id` 仅是本地测试上下文；普通 Web candidate 规则不变。
 - 单独提出的完整 2.4.1 参考库候选仍 HOLD，未包含在本版或描述为已发布。
 
 回滚：使用普通 revert 回退 2.3.6 维护文档和 opt-in Skill 更新；不改写已发布历史或影响运行中的 actor/Goal。

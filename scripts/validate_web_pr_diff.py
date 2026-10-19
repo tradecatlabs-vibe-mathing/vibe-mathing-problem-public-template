@@ -28,7 +28,8 @@ TEMPLATE_RELEASE_INERT_FILES = {
     "problem-library/records/problems.jsonl",
     "result-library/indexes/solutions.json",
 }
-TRUSTED_HARNESS_MAINTAINERS = {"vibemathing"}
+# Maintenance authorization uses the immutable GitHub account ID, never its mutable login.
+TRUSTED_HARNESS_MAINTAINER_IDS = frozenset({"288998340"})
 GENERATED_HARNESS_FILES = {
     "HARNESS_SNAPSHOT.json",
     "HARNESS_SNAPSHOT_HISTORY.json",
@@ -116,13 +117,33 @@ def harness_owned(snapshot: dict[str, Any]) -> dict[str, dict[str, Any]]:
     }
 
 
-def validate_harness_maintenance(root: Path, base: str, head: str, branch: str, actor: str) -> list[str]:
+def _maintenance_actor_error(surface: str, actor: str | None, actor_id: str | None) -> str | None:
+    if actor_id in TRUSTED_HARNESS_MAINTAINER_IDS:
+        return None
+    stable_id = actor_id or "<missing>"
+    return (
+        f"{surface} GitHub actor ID is not trusted: {stable_id}; "
+        f"display login is diagnostic only: {actor!r}"
+    )
+
+
+def validate_harness_maintenance(
+    root: Path,
+    base: str,
+    head: str,
+    branch: str,
+    actor: str | None = None,
+    actor_id: str | None = None,
+) -> list[str]:
     errors: list[str] = []
-    if actor not in TRUSTED_HARNESS_MAINTAINERS:
-        errors.append(f"Harness maintenance actor is not trusted: {actor or '<missing>'}")
+    identity_error = _maintenance_actor_error("Harness maintenance", actor, actor_id)
+    if identity_error:
+        errors.append(identity_error)
     suffix = branch[len(MAINTENANCE_BRANCH_PREFIX):]
     if not suffix or not re.fullmatch(r"[A-Za-z0-9._-]+", suffix):
         errors.append(f"invalid Harness maintenance branch: {branch}")
+    if errors:
+        return errors  # Untrusted callers cannot trigger repository diff/blob scans.
     try:
         changes = changed_paths(root, base, head)
         old_snapshot = json_at_revision(root, base, "HARNESS_SNAPSHOT.json")
@@ -187,16 +208,24 @@ def validate_harness_maintenance(root: Path, base: str, head: str, branch: str, 
     return errors
 
 
-def validate_template_release(root: Path, base: str, head: str, branch: str, actor: str) -> list[str]:
-    """单独验证整版模板迁移；不改变候选 PR 与日常 Harness 维护路径。"""
+def validate_template_release(
+    root: Path,
+    base: str,
+    head: str,
+    branch: str,
+    actor: str | None = None,
+    actor_id: str | None = None,
+) -> list[str]:
+    """验证整版模板迁移；GitHub actor ID 授权，login 仅用于诊断。"""
     errors: list[str] = []
     suffix = branch[len(TEMPLATE_RELEASE_BRANCH_PREFIX):]
     if not suffix or not re.fullmatch(r"[A-Za-z0-9._-]+", suffix):
         errors.append("invalid template release branch")
-    if actor not in TRUSTED_HARNESS_MAINTAINERS:
-        errors.append("template release actor is not trusted")
+    identity_error = _maintenance_actor_error("template release", actor, actor_id)
+    if identity_error:
+        errors.append(identity_error)
     if errors:
-        return errors  # 不可信调用方无需为千文件迁移消耗 Git blob 扫描预算。
+        return errors  # Untrusted callers cannot trigger large diff/blob scans.
     try:
         changes = changed_paths(root, base, head)
         before = json_at_revision(root, base, "HARNESS_SNAPSHOT.json")
@@ -318,12 +347,14 @@ def validate_template_release(root: Path, base: str, head: str, branch: str, act
     return errors
 
 
-def validate(root: Path, base: str, head: str, branch: str, actor: str | None = None) -> list[str]:
+def validate(
+    root: Path, base: str, head: str, branch: str, actor: str | None = None, actor_id: str | None = None
+) -> list[str]:
     errors: list[str] = []
     if branch.startswith(MAINTENANCE_BRANCH_PREFIX):
-        return validate_harness_maintenance(root, base, head, branch, actor or "")
+        return validate_harness_maintenance(root, base, head, branch, actor, actor_id)
     if branch.startswith(TEMPLATE_RELEASE_BRANCH_PREFIX):
-        return validate_template_release(root, base, head, branch, actor or "")
+        return validate_template_release(root, base, head, branch, actor, actor_id)
     try:
         profile = load_json(root / "WEB_CHANNEL_PROFILE.json")
         output_contract = load_json(root / "WEB_OUTPUT_CONTRACT.json")
@@ -417,7 +448,19 @@ def main() -> int:
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--branch", default=os.environ.get("GITHUB_HEAD_REF", ""))
-    parser.add_argument("--actor", default=os.environ.get("GITHUB_ACTOR", ""))
+    parser.add_argument(
+        "--actor",
+        default=os.environ.get("GITHUB_ACTOR", ""),
+        help="GitHub display login for diagnostics only; never grants maintenance authority",
+    )
+    parser.add_argument(
+        "--actor-id",
+        default=os.environ.get("GITHUB_ACTOR_ID", ""),
+        help=(
+            "stable GitHub account ID (defaults to GitHub Actions GITHUB_ACTOR_ID); "
+            "maintenance CLI overrides are test/context data, not authentication"
+        ),
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     root = args.project_root.resolve()
@@ -427,7 +470,7 @@ def main() -> int:
             branch = str(git(root, "branch", "--show-current"))
         except RuntimeError:
             branch = ""
-    errors = validate(root, args.base, args.head, branch, args.actor)
+    errors = validate(root, args.base, args.head, branch, args.actor, args.actor_id)
     report = {"decision": "PASS" if not errors else "BLOCK", "base": args.base, "head": args.head, "branch": branch, "errors": errors}
     if args.json:
         print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
